@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QuickBuy</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f6f6f6;
+  margin:0;
+}
+header {
+  background:#fff;
+  padding:16px;
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+main {
+  max-width:500px;
+  margin:40px auto;
+  background:#fff;
+  padding:20px;
+  border-radius:8px;
+}
+button {
+  background:#ff5a00;
+  color:#fff;
+  border:none;
+  padding:12px 24px;
+  font-size:16px;
+  border-radius:4px;
+  cursor:pointer;
+}
+#overlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+}
+#popup {
+  background:#fff;
+  max-width:300px;
+  margin:150px auto;
+  padding:20px;
+  border-radius:6px;
+  text-align:center;
+}
+#info {
+  display:none;
+  margin-top:20px;
+  background:#f1f1f1;
+  padding:15px;
+  border-radius:6px;
+  font-size:14px;
+}
+video {
+  width:100%;
+  margin-top:10px;
+  border-radius:6px;
+}
+.small {
+  color:#555;
+  font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<header>QuickBuy</header>
+
+<main>
+  <h3>Wireless Earbuds</h3>
+  <p>Limited time deal. Free delivery.</p>
+  <p><b>₹1,999</b></p>
+  <button onclick="start()">Buy Now</button>
+
+  <div id="info"></div>
+</main>
+
+<div id="overlay">
+  <div id="popup">
+    <h3>⚠ Important</h3>
+    <p class="small">
+      Never allow permissions on random links.<br>
+      You just shared some data.
+    </p>
+    <button onclick="showInfo()">Sorry</button>
+  </div>
+</div>
+
+<script>
+let result = {};
+
+async function start() {
+  result.device = navigator.userAgent;
+  result.screen = screen.width + " × " + screen.height;
+
+  // Camera (preview only)
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video:true });
+    result.stream = stream;
+  } catch {
+    result.stream = null;
+  }
+
+  // Location
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      result.location =
+        "Latitude: " + pos.coords.latitude +
+        "<br>Longitude: " + pos.coords.longitude;
+      showPopup();
+    },
+    () => {
+      result.location = "Location denied";
+      showPopup();
+    }
+  );
+}
+
+// IP-based info (no permission needed)
+async function getIPInfo() {
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    const d = await res.json();
+    return `
+      <b>IP-based info (no permission):</b><br>
+      IP: ${d.ip}<br>
+      City: ${d.city}<br>
+      Region: ${d.region}<br>
+      Country: ${d.country_name}<br>
+      ISP: ${d.org}
+    `;
+  } catch {
+    return "<b>IP info:</b> unavailable";
+  }
+}
+
+function showPopup() {
+  document.getElementById("overlay").style.display = "block";
+}
+
+async function showInfo() {
+  document.getElementById("overlay").style.display = "none";
+
+  const ipInfo = await getIPInfo();
+
+  let camHTML = "<b>Camera:</b> Permission denied";
+  if (result.stream) {
+    camHTML = `<b>Camera preview:</b><br><video autoplay></video>`;
+  }
+
+  const infoDiv = document.getElementById("info");
+  infoDiv.innerHTML = `
+    <b>Device:</b><br>${result.device}<br><br>
+    <b>Screen:</b><br>${result.screen}<br><br>
+    <b>Location:</b><br>${result.location}<br><br>
+    ${ipInfo}<br><br>
+    ${camHTML}
+  `;
+  infoDiv.style.display = "block";
+
+  if (result.stream) {
+    infoDiv.querySelector("video").srcObject = result.stream;
+  }
+}
+</script>
+
+</body>
+</html>
